@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
+
 local LocalPlayer = Players.LocalPlayer
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local humanoid = character:WaitForChild("Humanoid")
@@ -15,7 +16,9 @@ local isJobFinishedByGame = false
 
 local sleepRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Objects"):WaitForChild("Members"):WaitForChild("Bed"):WaitForChild("Use")
 local startJobRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Jobs"):WaitForChild("StartJob")
+
 local noclipConnection = nil
+local logLabel = nil
 
 local function notify(title, text)
     StarterGui:SetCore("SendNotification", {Title = title, Text = text, Duration = 3})
@@ -57,11 +60,16 @@ local function physicsTeleport(targetVector)
     local hum = char:FindFirstChildOfClass("Humanoid")
     local root = char:FindFirstChild("HumanoidRootPart")
     if not root then return end
+
     local wasNoClip = noclipConnection ~= nil
-    if not wasNoClip then setNoClip(true) end
+    if not wasNoClip then
+        setNoClip(true)
+    end
+
     local vehicle = hum and hum.SeatPart and hum.SeatPart.Parent
     local targetPos = targetVector + Vector3.new(0, 4, 0)
     local safeCFrame = CFrame.new(targetPos) * CFrame.Angles(0, 0, 0)
+
     if vehicle then
         for _, part in pairs(vehicle:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -82,7 +90,10 @@ local function physicsTeleport(targetVector)
             char:PivotTo(CFrame.new(targetVector + Vector3.new(0, 7, 0)))
         end
     end
-    if not wasNoClip then setNoClip(false) end
+
+    if not wasNoClip then
+        setNoClip(false)
+    end
 end
 
 LocalPlayer.Idled:Connect(function()
@@ -194,32 +205,29 @@ local function restoreEnergy()
             end
             if satDown then
                 sleepRemote:FireServer(bedFrame, bedSeat)
-                local sleepTime = 15
-                local interrupted = false
-                for i = sleepTime, 1, -1 do
+                -- ТАЙМЕР: от 20 до 0
+                for i = 20, 0, -1 do
                     if not _G.AnimeLifeSmartAutofarm then break end
+                    if logLabel then
+                        logLabel.Text = "Energy: " .. i .. "s"
+                    end
                     if humanoid and humanoid.SeatPart ~= bedSeat then
                         bedSeat:Sit(humanoid)
                         task.wait(0.2)
                         if humanoid.SeatPart ~= bedSeat then
-                            interrupted = true
                             break
                         end
                     end
                     task.wait(1)
                 end
-                if not interrupted and _G.AnimeLifeSmartAutofarm then
+                if humanoid and humanoid.Parent then
+                    humanoid.Sit = false
+                    humanoid.PlatformStand = false
+                    rootPart.CFrame = rootPart.CFrame + Vector3.new(0, 5, 0)
+                    humanoid.Jump = true
                     sleepSuccess = true
-                    if humanoid and humanoid.Parent then
-                        humanoid.Sit = false
-                        humanoid.PlatformStand = false
-                        rootPart.CFrame = rootPart.CFrame + Vector3.new(0, 5, 0)
-                        humanoid.Jump = true
-                    end
-                    task.wait(0.5)
-                else
-                    task.wait(1)
                 end
+                task.wait(0.5)
             else
                 task.wait(1)
             end
@@ -411,6 +419,7 @@ local function createGUI()
     LogLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
     LogLabel.TextSize = 12
     LogLabel.Parent = ContentFrame
+    logLabel = LogLabel
     local InfoLabel = Instance.new("TextLabel")
     InfoLabel.Size = UDim2.new(1, -24, 0, 80)
     InfoLabel.Position = UDim2.new(0, 12, 0, 125)
@@ -474,14 +483,12 @@ local function createGUI()
                 end
             end)
         else
-          setNoClip(false)
+            setNoClip(false)
             ToggleBtn.Text = "START AUTOFARM"
             ToggleBtn.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
             LogLabel.Text = "Status: Stopped"
         end
     end)
 end
-
-createGUI()        
 
 createGUI()
