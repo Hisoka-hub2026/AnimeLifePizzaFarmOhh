@@ -195,7 +195,7 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
 	end
 	
 	return oldNamecall(self, ...)
-end
+end)
 
 if CoreGui:FindFirstChild("AnimeLife_HisokaHub_Pizza") then
 	CoreGui:FindFirstChild("AnimeLife_HisokaHub_Pizza"):Destroy()
@@ -434,12 +434,12 @@ local function runFullComboLoop()
 				if satDown then
 					sleepRemote:FireServer(bedFrame, bedSeat)
 					local fullSleepInterrupted = false
-					for i = 20, 0, -1 do
+					for i = 20, 1, -1 do
 						if not _G.AnimeLifeSmartAutofarm then break end
-						if humanoid and humanoid.SeatPart ~= bedSeat then
+						if humanoid and not humanoid.SeatPart then
 							bedSeat:Sit(humanoid)
 							task.wait(0.2)
-							if humanoid.SeatPart ~= bedSeat then
+							if humanoid and not humanoid.SeatPart then
 								fullSleepInterrupted = true
 								break
 							end
@@ -499,12 +499,12 @@ local function runFullComboLoop()
 				if satDown then
 					sleepRemote:FireServer(bedFrame, bedSeat)
 					local fullSleepInterrupted = false
-					for i = 20, 0, -1 do
+					for i = 20, 1, -1 do
 						if not _G.AnimeLifeSmartAutofarm then break end
-						if humanoid and humanoid.SeatPart ~= bedSeat then
+						if humanoid and not humanoid.SeatPart then
 							bedSeat:Sit(humanoid)
 							task.wait(0.2)
-							if humanoid.SeatPart ~= bedSeat then
+							if humanoid and not humanoid.SeatPart then
 								fullSleepInterrupted = true
 								break
 							end
