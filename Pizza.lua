@@ -15,7 +15,6 @@ _G.ActionDelay = 7.0
 local isMinimized = false
 
 local isJobFinishedByGame = false
-local jobActive = false
 
 local sleepRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Objects"):WaitForChild("Members"):WaitForChild("Bed"):WaitForChild("Use")
 local startJobRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Jobs"):WaitForChild("StartJob")
@@ -180,7 +179,6 @@ local jobEndedRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("J
 jobEndedRemote.OnClientEvent:Connect(function(reason)
 	if _G.AnimeLifeSmartAutofarm and reason == "Energy" then
 		isJobFinishedByGame = true
-		jobActive = false
 		print("[Event] Job ended automatically due to low energy.")
 	end
 end)
@@ -192,7 +190,6 @@ oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
 	if method == "FireServer" and self.Name == "QuitJob" then
 		if _G.AnimeLifeSmartAutofarm then
 			isJobFinishedByGame = true
-			jobActive = false
 			print("[Spy] QuitJob signal caught! Manual delivery finish detected.")
 		end
 	end
@@ -345,44 +342,15 @@ local function runFullComboLoop()
 	local compRegion = workspace:FindFirstChild("CompletionRegion")
 	local driveZone = compRegion and compRegion:FindFirstChild("DriveZone")
 
-	jobActive = false
-	isJobFinishedByGame = false
-	LogLabel.Text = "Status: Starting job..."
-	startJobRemote:FireServer("PizzaDelivery")
-	task.wait(0.5)
-
-	local zoneFound = false
-	local zoneVector = nil
-	for _ = 1, 4 do
-		pcall(function()
-			local currentCompRegion = workspace:FindFirstChild("CompletionRegion")
-			if currentCompRegion then
-				local currentDriveZone = currentCompRegion:FindFirstChild("DriveZone")
-				if currentDriveZone and currentDriveZone:IsA("BasePart") and currentDriveZone.Position.Y > -50 then
-					zoneVector = currentDriveZone.Position
-					zoneFound = true
-				end
-			end
-		end)
-		if zoneFound then break end
-		task.wait(0.5)
-	end
-
-	if zoneFound and zoneVector then
-		jobActive = true
-		LogLabel.Text = "Status: Job active, delivering..."
-	else
-		LogLabel.Text = "Status: Job failed to start. Retrying..."
-		task.wait(1)
-		return
-	end
-
 	if driveZone and driveZone:IsA("BasePart") and driveZone.Position.Y > -50 then
+		startJobRemote:FireServer("PizzaDelivery")
+		task.wait(0.5)
+
 		while not isJobFinishedByGame and _G.AnimeLifeSmartAutofarm do
 			LogLabel.Text = "Status: Delivering Pizza..."
 			
-			local zoneFoundInner = false
-			local zoneVectorInner = nil
+			local zoneFound = false
+			local zoneVector = nil
 			
 			pcall(function()
 				local currentCompRegion = workspace:FindFirstChild("CompletionRegion")
@@ -390,16 +358,16 @@ local function runFullComboLoop()
 					local currentDriveZone = currentCompRegion:FindFirstChild("DriveZone")
 					if currentDriveZone and currentDriveZone:IsA("BasePart") then
 						if currentDriveZone.Position.Y > -50 then
-							zoneVectorInner = currentDriveZone.Position
-							zoneFoundInner = true
+							zoneVector = currentDriveZone.Position
+							zoneFound = true
 						end
 					end
 				end
 			end)
 			
-			if zoneFoundInner and zoneVectorInner then
+			if zoneFound and zoneVector then
 				LogLabel.Text = "Status: Teleporting to DriveZone"
-				physicsTeleport(zoneVectorInner)
+				physicsTeleport(zoneVector)
 			else
 				LogLabel.Text = "Status: Target missing. Returning to base..."
 				local pizzaBase = nil
@@ -425,10 +393,7 @@ local function runFullComboLoop()
 			end
 		end
 
-		if not _G.AnimeLifeSmartAutofarm then 
-			jobActive = false
-			return 
-		end
+		if not _G.AnimeLifeSmartAutofarm then return end
 
 		task.wait(0.5) 
 		LogLabel.Text = "Status: Claiming Money..."
@@ -440,12 +405,6 @@ local function runFullComboLoop()
 		
 		clickUiButtonByKeywords({"close", "exit", "close"})
 		task.wait(1.5)
-
-		pcall(function()
-			local quitJobRemote = ReplicatedStorage:FindFirstChild("Systems"):FindFirstChild("Jobs"):FindFirstChild("QuitJob")
-			if quitJobRemote then quitJobRemote:FireServer() end
-		end)
-		jobActive = false
 
 		if not _G.AnimeLifeSmartAutofarm then return end
 		
@@ -581,7 +540,7 @@ local function runFullComboLoop()
 		if not _G.AnimeLifeSmartAutofarm then return end
 
 		isJobFinishedByGame = false
-		jobActive = false
+
 		LogLabel.Text = "Status: Starting Job..."
 		startJobRemote:FireServer("PizzaDelivery")
 		task.wait(0.5)
@@ -589,8 +548,8 @@ local function runFullComboLoop()
 		while not isJobFinishedByGame and _G.AnimeLifeSmartAutofarm do
 			LogLabel.Text = "Status: Delivering Pizza..."
 			
-			local zoneFoundInner = false
-			local zoneVectorInner = nil
+			local zoneFound = false
+			local zoneVector = nil
 			
 			pcall(function()
 				local currentCompRegion = workspace:FindFirstChild("CompletionRegion")
@@ -598,224 +557,16 @@ local function runFullComboLoop()
 					local currentDriveZone = currentCompRegion:FindFirstChild("DriveZone")
 					if currentDriveZone and currentDriveZone:IsA("BasePart") then
 						if currentDriveZone.Position.Y > -50 then
-							zoneVectorInner = currentDriveZone.Position
-							zoneFoundInner = true
+							zoneVector = currentDriveZone.Position
+							zoneFound = true
 						end
 					end
 				end
 			end)
 			
-			if zoneFoundInner and zoneVectorInner then
+			if zoneFound and zoneVector then
 				LogLabel.Text = "Status: Teleporting to DriveZone"
-				physicsTeleport(zoneVectorInner)
-			else
-				LogLabel.Text = "Status: Target missing. Returning to base..."
-				local pizzaBase = nil
-				for _, zone in pairs(workspace:GetDescendants()) do
-					if zone:IsA("BasePart") and (zone.Name:lower():match("pizza") or zone.Name:lower():match("delivery")) then
-						if zone.Size.Magnitude > 4 and not zone:IsDescendantOf(workspace:FindFirstChild("CompletionRegion") or workspace) then
-							pizzaBase = zone
-							break
-						end
-					end
-				end
-				if pizzaBase then 
-					physicsTeleport(pizzaBase.Position) 
-				end
-			end
-			
-			local startWait = tick()
-			while tick() - startWait < _G.ActionDelay do
-				if not _G.AnimeLifeSmartAutofarm or isJobFinishedByGame then break end
-				local timeLeft = string.format("%.1f", _G.ActionDelay - (tick() - startWait))
-				LogLabel.Text = "Next Delivery In: " .. timeLeft .. "s"
-				task.wait(0.1)
-			end
-		end
-
-		if not _G.AnimeLifeSmartAutofarm then 
-			jobActive = false
-			return 
-		end
-
-		task.wait(0.5) 
-		LogLabel.Text = "Status: Claiming Money..."
-		
-		clickUiButtonByKeywords({"claim", "bank"})
-		task.wait(0.3) 
-		clickUiButtonByKeywords({"claim", "bank"})
-		task.wait(0.5) 
-		
-		clickUiButtonByKeywords({"close", "exit", "close"})
-		task.wait(1.5)
-
-		pcall(function()
-			local quitJobRemote = ReplicatedStorage:FindFirstChild("Systems"):FindFirstChild("Jobs"):FindFirstChild("QuitJob")
-			if quitJobRemote then quitJobRemote:FireServer() end
-		end)
-		jobActive = false
-
-		if not _G.AnimeLifeSmartAutofarm then return end
-		
-		local sleepSuccess = false
-		while not sleepSuccess and _G.AnimeLifeSmartAutofarm do
-			character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-			humanoid = character:WaitForChild("Humanoid")
-			rootPart = character:WaitForChild("HumanoidRootPart")
-
-			LogLabel.Text = "Status: Finding Free Bed..."
-			local bedFrame, bedSeat = findMyBed()
-			if bedFrame and bedSeat then
-				physicsTeleport(bedSeat.Position)
-				task.wait(0.5)
-
-				local sitAttempts = 0
-				local satDown = false
-				while sitAttempts < 4 and not satDown and _G.AnimeLifeSmartAutofarm do
-					bedSeat:Sit(humanoid)
-					task.wait(0.3)
-					if humanoid and humanoid.SeatPart == bedSeat then
-						satDown = true
-					else
-						sitAttempts = sitAttempts + 1
-					end
-				end
-
-				if satDown then
-					sleepRemote:FireServer(bedFrame, bedSeat)
-					local fullSleepInterrupted = false
-					for i = 20, 1, -1 do
-						if not _G.AnimeLifeSmartAutofarm then break end
-						if humanoid and not humanoid.SeatPart then
-							bedSeat:Sit(humanoid)
-							task.wait(0.2)
-							if humanoid and not humanoid.SeatPart then
-								fullSleepInterrupted = true
-								break
-							end
-						end
-						LogLabel.Text = "Energy Regeneration: " .. i .. "s"
-						task.wait(1)
-					end
-					
-					if not fullSleepInterrupted and _G.AnimeLifeSmartAutofarm then
-						sleepSuccess = true
-						if humanoid and humanoid.Parent then
-							humanoid.Sit = false 
-							humanoid.PlatformStand = false
-							rootPart.CFrame = rootPart.CFrame + Vector3.new(0, 5, 0)
-							humanoid.Jump = true 
-						end
-						task.wait(0.5) 
-					else
-						LogLabel.Text = "Status: Sleep pre-empted! Retrying..."
-						task.wait(1)
-					end
-				else
-					LogLabel.Text = "Status: Failed to sit on bed. Retrying..."
-					task.wait(1)
-				end
-			else
-				LogLabel.Text = "Status: No free beds. Waiting..."
-				task.wait(3)
-			end
-		end
-
-	else
-		local sleepSuccess = false
-		while not sleepSuccess and _G.AnimeLifeSmartAutofarm do
-			character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-			humanoid = character:WaitForChild("Humanoid")
-			rootPart = character:WaitForChild("HumanoidRootPart")
-
-			LogLabel.Text = "Status: Finding Free Bed..."
-			local bedFrame, bedSeat = findMyBed()
-			if bedFrame and bedSeat then
-				physicsTeleport(bedSeat.Position)
-				task.wait(0.5)
-
-				local sitAttempts = 0
-				local satDown = false
-				while sitAttempts < 4 and not satDown and _G.AnimeLifeSmartAutofarm do
-					bedSeat:Sit(humanoid)
-					task.wait(0.3)
-					if humanoid and humanoid.SeatPart == bedSeat then
-						satDown = true
-					else
-						sitAttempts = sitAttempts + 1
-					end
-				end
-
-				if satDown then
-					sleepRemote:FireServer(bedFrame, bedSeat)
-					local fullSleepInterrupted = false
-					for i = 20, 1, -1 do
-						if not _G.AnimeLifeSmartAutofarm then break end
-						if humanoid and not humanoid.SeatPart then
-							bedSeat:Sit(humanoid)
-							task.wait(0.2)
-							if humanoid and not humanoid.SeatPart then
-								fullSleepInterrupted = true
-								break
-							end
-						end
-						LogLabel.Text = "Energy Regeneration: " .. i .. "s"
-						task.wait(1)
-					end
-					
-					if not fullSleepInterrupted and _G.AnimeLifeSmartAutofarm then
-						sleepSuccess = true
-						if humanoid and humanoid.Parent then
-							humanoid.Sit = false 
-							humanoid.PlatformStand = false
-							rootPart.CFrame = rootPart.CFrame + Vector3.new(0, 5, 0)
-							humanoid.Jump = true 
-						end
-						task.wait(0.5) 
-					else
-						LogLabel.Text = "Status: Sleep pre-empted! Retrying..."
-						task.wait(1)
-					end
-				else
-					LogLabel.Text = "Status: Failed to sit on bed. Retrying..."
-					task.wait(1)
-				end
-			else
-				LogLabel.Text = "Status: No free beds. Waiting..."
-				task.wait(3)
-			end
-		end
-
-		if not _G.AnimeLifeSmartAutofarm then return end
-
-		isJobFinishedByGame = false
-		jobActive = false
-		LogLabel.Text = "Status: Starting Job..."
-		startJobRemote:FireServer("PizzaDelivery")
-		task.wait(0.5)
-
-		while not isJobFinishedByGame and _G.AnimeLifeSmartAutofarm do
-			LogLabel.Text = "Status: Delivering Pizza..."
-			
-			local zoneFoundInner = false
-			local zoneVectorInner = nil
-			
-			pcall(function()
-				local currentCompRegion = workspace:FindFirstChild("CompletionRegion")
-				if currentCompRegion then
-					local currentDriveZone = currentCompRegion:FindFirstChild("DriveZone")
-					if currentDriveZone and currentDriveZone:IsA("BasePart") then
-						if currentDriveZone.Position.Y > -50 then
-							zoneVectorInner = currentDriveZone.Position
-							zoneFoundInner = true
-						end
-					end
-				end
-			end)
-			
-			if zoneFoundInner and zoneVectorInner then
-				LogLabel.Text = "Status: Teleporting to DriveZone"
-				physicsTeleport(zoneVectorInner)
+				physicsTeleport(zoneVector)
 			else
 				LogLabel.Text = "Status: Target missing. Returning to base..."
 				local pizzaBase = nil
@@ -853,12 +604,6 @@ local function runFullComboLoop()
 		
 		clickUiButtonByKeywords({"close", "exit", "close"})
 		task.wait(1.5)
-		
-		pcall(function()
-			local quitJobRemote = ReplicatedStorage:FindFirstChild("Systems"):FindFirstChild("Jobs"):FindFirstChild("QuitJob")
-			if quitJobRemote then quitJobRemote:FireServer() end
-		end)
-		jobActive = false
 	end
 end
 
@@ -872,8 +617,6 @@ ToggleBtn.MouseButton1Click:Connect(function()
         
         ToggleBtn.Text = "AUTOFARM: ON"
         ToggleBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
-        jobActive = false
-        isJobFinishedByGame = false
         
         task.spawn(function()
 			while _G.AnimeLifeSmartAutofarm do
@@ -891,6 +634,5 @@ ToggleBtn.MouseButton1Click:Connect(function()
         ToggleBtn.Text = "START AUTOFARM"
         ToggleBtn.BackgroundColor3 = Color3.fromRGB(150, 30, 30)
         LogLabel.Text = "Status: Stopped"
-        jobActive = false
     end
 end)
