@@ -19,7 +19,6 @@ local jobActive = false
 
 local sleepRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Objects"):WaitForChild("Members"):WaitForChild("Bed"):WaitForChild("Use")
 local startJobRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Jobs"):WaitForChild("StartJob")
-local quitJobRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Jobs"):WaitForChild("QuitJob")
 
 local noclipConnection = nil
 
@@ -443,7 +442,8 @@ local function runFullComboLoop()
 		task.wait(1.5)
 
 		pcall(function()
-			quitJobRemote:FireServer()
+			local quitJobRemote = ReplicatedStorage:FindFirstChild("Systems"):FindFirstChild("Jobs"):FindFirstChild("QuitJob")
+			if quitJobRemote then quitJobRemote:FireServer() end
 		end)
 		jobActive = false
 
@@ -650,7 +650,8 @@ local function runFullComboLoop()
 		task.wait(1.5)
 
 		pcall(function()
-			quitJobRemote:FireServer()
+			local quitJobRemote = ReplicatedStorage:FindFirstChild("Systems"):FindFirstChild("Jobs"):FindFirstChild("QuitJob")
+			if quitJobRemote then quitJobRemote:FireServer() end
 		end)
 		jobActive = false
 
@@ -854,7 +855,8 @@ local function runFullComboLoop()
 		task.wait(1.5)
 		
 		pcall(function()
-			quitJobRemote:FireServer()
+			local quitJobRemote = ReplicatedStorage:FindFirstChild("Systems"):FindFirstChild("Jobs"):FindFirstChild("QuitJob")
+			if quitJobRemote then quitJobRemote:FireServer() end
 		end)
 		jobActive = false
 	end
