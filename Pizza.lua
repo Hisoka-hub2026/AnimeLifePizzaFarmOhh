@@ -18,6 +18,7 @@ local isJobFinishedByGame = false
 
 local sleepRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Objects"):WaitForChild("Members"):WaitForChild("Bed"):WaitForChild("Use")
 local startJobRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Jobs"):WaitForChild("StartJob")
+local quitJobRemote = ReplicatedStorage:WaitForChild("Systems"):WaitForChild("Jobs"):WaitForChild("QuitJob")
 
 local noclipConnection = nil
 
@@ -343,9 +344,6 @@ local function runFullComboLoop()
 	local driveZone = compRegion and compRegion:FindFirstChild("DriveZone")
 
 	if driveZone and driveZone:IsA("BasePart") and driveZone.Position.Y > -50 then
-		startJobRemote:FireServer("PizzaDelivery")
-		task.wait(0.5)
-
 		while not isJobFinishedByGame and _G.AnimeLifeSmartAutofarm do
 			LogLabel.Text = "Status: Delivering Pizza..."
 			
@@ -472,6 +470,12 @@ local function runFullComboLoop()
 			end
 		end
 
+		-- ДОБАВЛЕНО: завершаем работу после сна
+		pcall(function()
+			quitJobRemote:FireServer()
+		end)
+		task.wait(0.5)
+
 	else
 		local sleepSuccess = false
 		while not sleepSuccess and _G.AnimeLifeSmartAutofarm do
@@ -536,6 +540,12 @@ local function runFullComboLoop()
 				task.wait(3)
 			end
 		end
+
+		-- ДОБАВЛЕНО: завершаем работу после сна
+		pcall(function()
+			quitJobRemote:FireServer()
+		end)
+		task.wait(0.5)
 
 		if not _G.AnimeLifeSmartAutofarm then return end
 
